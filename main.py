@@ -2,7 +2,6 @@ from utils import *
 import pandas as pd
 
 target_bar = '14'
-factor = 1.5
 converged = True
 
 #Leitura do PWF Original para verificação da linha de modificação
@@ -21,7 +20,7 @@ with open(arquivo_pwf) as f:
     target_line, Pl_original, Ql_original = check_line_pq(lines, target_bar)
     Pl = Pl_original
     Ql = Ql_original
-
+    factor = 0.5*Pl_original
 # Modifica linha para salvar relatório e não sobrepor o original
 lines = create_report(lines)
 
@@ -37,8 +36,8 @@ exit_list.append({
 
 while converged == True:
     #Atualiza valores (em memória) de Pl e Ql
-    Pl *= factor 
-    Ql *= factor
+    Pl = Pl + factor
+    Ql = Ql + factor
 
     #Atualiza linha
     #0         1         2         3         4         5         6         7          
@@ -84,6 +83,7 @@ while converged == True:
             })
             break
     iteracao += 1
+    factor = 0.5*Pl
     exit_list.append({
         "Iteracao": iteracao,
         "Característica": "Modificado",
