@@ -24,7 +24,18 @@ def execute_anarede(arquivo_pwf):
     caminho_exe = r"C:\CEPEL\Anarede\V120001\\Anarede.exe"
 
     # Inicia o ANAREDE com o arquivo
-    processo = subprocess.Popen([caminho_exe, arquivo_pwf])
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 0  # SW_HIDE
+    # 6 = minimizar
+
+    processo = subprocess.Popen(
+        [caminho_exe, arquivo_pwf],
+        startupinfo=startupinfo
+    )
+    
+    # processo = subprocess.Popen([caminho_exe, arquivo_pwf])
+    # processo.wShowWindow = 0  # SW_MINIMIZE
 
     # Espera alguns segundos
     time.sleep(2)
