@@ -1,0 +1,33 @@
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V12.00.01                                 PAG.   4
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+ MONITORACAO DE TENSAO
+
+ X----------------------X--------------------X--------X--------X--------X---------------X
+           BARRA                TENSAO        VIOLACAO SHUNTBAR SHUNTLIN    SEVERIDADE
+   NUM.     NOME     ARE   MIN    MOD.   MAX    (PU)    (Mvar)   (Mvar)
+ X-----X------------X---X------X------X------X--------X--------X--------X---------------X
+
+      2 BARRA-2        1  0.950  1.775  1.050    0.725                   **************+
+
+ ------ IND SEVER.    5251.5 -------
+
+
+ MONITORACAO DE GERACAO REATIVA
+
+Não foram encontradas violações de geracao entre as barras monitoradas.
+
+
+
+
+ MONITORACAO DE FLUXOS CORRIGIDOS PELA TENSAO - MFCT
+
+ X----------------------------X-----------------------X--------X---------------X
+    DA BARRA    PARA BARRA              FLUXOS         VIOLACAO  CARREGAMENTO %
+      NOME         NOME     NC     MW    Mvar   MVA/V     MVA      SEVERIDADE
+ X------------X------------X--X-------X-------X-------X--------X---------------X
+
+          1            2                                               193.78 %
+  BARRA-1      BARRA-2       1    17.7  -387.2   387.6    187.6 **********
+
+ -------------------- IND SEVER.       3.8 ---------------------

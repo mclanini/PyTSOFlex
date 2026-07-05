@@ -30,7 +30,7 @@ DBAR
    11  0  BARRA-11     A1000                              3.50  1.80      01
    12  0  BARRA-12     A1000                              6.10  1.60      01
    13  0  BARRA-13     A1000                              13.50 5.80      01
-   14  0  BARRA-14     A1000                              75.4365.53      01
+   14  0  BARRA-14     A1000                              56.6946.79      01
 99999
 (
 (=======================================================================
@@ -57,7 +57,7 @@ DLIN
    12        13     22.09219.988
     4         9           55.618      0.969
     5         6           25.202      0.932
-    4         7           20.912      0.978 
+    4         7           20.912      0.978
 99999
 DGLT
 (G (Vmn) (Vmx) (Vmne (Vmxe
@@ -68,4 +68,8 @@ ULOG
 RELAT_NEW.OUT
 EXLF NEWT QLIM FILE
 RELA RBAR RLIN FILE
+ULOG
+4
+REMON_NEW.OUT
+RELA RMON MOCT MOCF MOCG FILE
 FIM

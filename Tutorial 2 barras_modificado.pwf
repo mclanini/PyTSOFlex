@@ -1,0 +1,48 @@
+TITU
+****   Sistema teste de 14 maquinas - IEEE  ****
+DCTE
+(Mn) ( Val) (Mn) ( Val) (Mn) ( Val) (Mn) ( Val) (Mn) ( Val) (Mn) ( Val)
+BASE 100.00 DASE   6264 TEPA 0.0010 EXST 0.4000 TETP 5.0000 TBPA 5.0000
+TLPP 1.0000 TEPR 0.0010 QLST 0.4000 TLPR 1.0000 TSBZ 0.0100
+TSBA 5.0000 ASTP 0.0500 VSTP 5.0000 TLVC 0.1000 TLTC 0.1000 TSFR 0.0100
+ZMAX 500.00 VDVM 140.00 VDVN 60.000 TUDC 0.0100 TADC 0.0100
+PGER 30.000 TPST 500.00 LFIT     10 ACIT     30 LFCV      3
+DCIT     10 VSIT     10 LPIT     50 LFLP     10 LCRT     32
+ICIT   9000 ICMN 0.010 
+CPAR   20 
+99999
+(
+(=======================================================================
+( DADOS DE BARRAS CA
+(=======================================================================
+DBAR
+(Num)OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)M(1)(2)(3)(4)(5)(6)(7)(8)(9)(10
+    1  2  BARRA-1      A1000      40.13.15 -200  200         .0   .0      01
+    2  0  BARRA-2      A1000                              44.21-1719      01
+99999
+(
+(=======================================================================
+( DADOS DE CIRCUITOS CA
+(=======================================================================
+DLIN
+(De )d O d(Pa )NcEP ( R% )( X% )(Mvar)(Tap)(Tmn)(Tmx)(Phs)(Bc  )(Cn)(Ce)Ns
+    1         2           20.000                                200
+99999
+DGLT
+(G (Vmn) (Vmx) (Vmne (Vmxe
+A  0.950 1.050 0.950 1.050
+99999
+ULOG
+4
+RELAT_NEW.OUT
+EXLF NEWT QLIM FILE
+RELA RBAR RLIN FILE
+ULOG
+4
+REMON_NEW.OUT
+RELA RMON MOCT MOCF MOCG FILE
+ULOG
+4
+REMON_GER_NEW.OUT
+RELA RGEL
+FIM
