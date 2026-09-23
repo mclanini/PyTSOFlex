@@ -60,7 +60,7 @@ def get_line_pq(lines, target_bar):
     #0         1         2         3         4         5         6         7          
     #01234567890123456789012345678901234567890123456789012345678901234567890123456789
     #(No )OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)
-    idx_dbar = 0
+    idx_dbar = 9e100
     for i, linha in enumerate(lines):
         if linha.startswith("DBAR"):
             idx_dbar = i

@@ -274,10 +274,14 @@ if __name__ == "__main__":
             # a próxima rodada e nos arquivos para execução.
             if len(angulos_nao_executaram) > 0:
                 angulos_nao_executaram.sort()
-                for angulo in angulos_nao_executaram:
-                    angulo_rad = math.radians(angulo)
-                    if angulo_rad not in proximos_ativos:
-                        proximos_ativos.append(angulo_rad)
+                for angulo_graus in angulos_nao_executaram:
+                    angulo_original = next(
+                        angulo
+                        for angulo in angulos
+                        if int(round(math.degrees(angulo))) == angulo_graus
+                    )
+                    if angulo_original not in proximos_ativos:
+                        proximos_ativos.append(angulo_original)
                 proximos_ativos.sort()
                 # Adiciono os arquivos de execução dos ângulos que não executaram na rodada
                 for angulo in angulos_nao_executaram:
