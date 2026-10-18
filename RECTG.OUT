@@ -1,0 +1,131 @@
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   3
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ CONTINGENCIA    1  PRIORIDADE  1 PRIMEIRA CONTINGÊNCIA                         
+
+ CIRCUITO da Barra     1 BARRA-1       p/ Barra     2 BARRA-2      Circ  1 (DESLIGAR)
+
+ RELATORIO DE CONVERGENCIA
+
+ OPCOES ATIVADAS: QLIM NEWT MOCT MOCG MOCF RCVG RMON FILE INMN UNPG
+
+ X-----------X------X------X---------------X---------------X---------------X--X-----------------------------------------------------------X
+    ITERACAO          FREQ.  ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV                                                                
+  FC  P  Q  V  M.O.   (Hz)       MW    NUM.     Mvar   NUM.  TENSAO %  NUM. FM  BARRA(B), CIRCUITO(C) E CONVERSOR COM LIMITE VIOLADO       
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X--X-----------------------------------------------------------X
+
+      1  1    1.0000 60.000    152.54     2      0.00     5
+      2  2    1.0000 60.000     14.69     5     29.10     5
+      3  3    1.0000 60.000      0.54     5      0.86     5
+      4  4    1.0000 60.000      0.00     5**********     8
+                                                                                  2B    6B    8B
+      5  5    1.0000 60.000      0.32     3**********     3
+                                                                                  3B
+      6  6    1.0000 60.000      6.47     5      2.06     5
+ ................................................................
+
+
+
+
+ ****** SISTEMA CA DIVERGENTE ******
+
+ X-----------X------X------X---------------X---------------X---------------X
+    ITERACAO          FREQ. ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV  
+  FC  P  Q  V  M.O.   (Hz)      MW    NUM.     Mvar   NUM.  TENSAO %  NUM.  
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X
+
+   0                             0.00     0      0.00     0
+      6  6  0 1.0000 60.000      6.47     5      2.06     5     0.000     0
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   4
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ CONTINGENCIA    2  PRIORIDADE  1 SEGUNDA CONTINGÊNCIA                          
+
+ CIRCUITO da Barra     4 BARRA-4       p/ Barra     5 BARRA-5      Circ  1 (DESLIGAR)
+
+ RELATORIO DE CONVERGENCIA
+
+ OPCOES ATIVADAS: QLIM NEWT MOCT MOCG MOCF RCVG RMON FILE INMN UNPG
+
+ X-----------X------X------X---------------X---------------X---------------X--X-----------------------------------------------------------X
+    ITERACAO          FREQ.  ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV                                                                
+  FC  P  Q  V  M.O.   (Hz)       MW    NUM.     Mvar   NUM.  TENSAO %  NUM. FM  BARRA(B), CIRCUITO(C) E CONVERSOR COM LIMITE VIOLADO       
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X--X-----------------------------------------------------------X
+
+      1  1    1.0000 60.000     61.74     5     15.67     4
+      2  2    1.0000 60.000      0.52     4      1.36     5
+      3  3    1.0000 60.000      0.00     6**********     2
+                                                                                  2B
+ ................................................................
+
+
+
+
+ CONVERGENCIA FINAL
+
+ X-----------X------X------X---------------X---------------X---------------X
+    ITERACAO          FREQ. ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV  
+  FC  P  Q  V  M.O.   (Hz)      MW    NUM.     Mvar   NUM.  TENSAO %  NUM.  
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X
+
+   0                             0.00     0      0.00     0
+      3  3  0 1.0000 60.000      0.00     3      0.00     2     0.000     0
+
+
+ MONITORACAO DE TENSAO
+
+Não foram encontradas violações de tensao entre as barras monitoradas.
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   5
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ CONTINGENCIA    2  PRIORIDADE  1 SEGUNDA CONTINGÊNCIA                          
+
+ CIRCUITO da Barra     4 BARRA-4       p/ Barra     5 BARRA-5      Circ  1 (DESLIGAR)
+
+ MONITORACAO DE GERACAO REATIVA
+
+ X-------------------------X-----------------------X--------X---X
+           BARRA                   GERACAO         VIOLACAO LIM
+   NUM.     NOME     TP ARE MINIMA   Mvar   MAXIMA   Mvar
+ X-----X------------X--X---X-------X-------X-------X--------X---X
+
+      8 BARRA-8       1   1    -6.0    20.2    20.0      0.2 SUP
+
+ ---- IND SEVER.       0.0 ----
+
+
+ MONITORACAO DE FLUXOS CORRIGIDOS PELA TENSAO - MFCT
+
+ Não foram encontradas violações de fluxo entre os circuitos monitorados
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   6
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ SUMARIO DE MONITORACAO  ( CASOS MAIS SEVEROS )
+
+
+ X---------- GER. Mvar ---------X----------------------------------------------X
+     CASO     NUMERO    INDICE
+   CONTING  VIOLACOES SEVERIDADE         IDENTIFICACAO DA CONTINGENCIA
+ X---------X---------X----------X----------------------------------------------X
+
+        2         1          0.0 SEGUNDA CONTINGÊNCIA                          
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   7
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ SUMARIO DOS CASOS NAO PROCESSADOS
+
+ PRIORIDADE  1
+
+
+ DIVERGENTES
+
+ X----X----X----X----X----X----X----X----X----X----X
+  CASO CASO CASO CASO CASO CASO CASO CASO CASO CASO
+ X----X----X----X----X----X----X----X----X----X----X
+
+     1

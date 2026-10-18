@@ -1,0 +1,23 @@
+
+
+ MONITORACAO DE TENSAO
+
+Não foram encontradas violações de tensao entre as barras monitoradas.
+
+
+ MONITORACAO DE GERACAO REATIVA
+
+Não foram encontradas violações de geracao entre as barras monitoradas.
+
+
+ MONITORACAO DE FLUXOS CORRIGIDOS PELA TENSAO - MFCT
+
+ Não foram encontradas violações de fluxo entre os circuitos monitorados
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   5
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+ *** ERRO SELKOD-0100 ***
+ Codigo de execucao invalido.
+
+ *** Verifique a linha 00027 do arquivo C:\USERS\USUARIO\DOCUMENTS\PROJETO_REGIAO_FLEXIBILIDADE\PYTSOFLEX\EXEMPLO-EXCT.PWF ***
+

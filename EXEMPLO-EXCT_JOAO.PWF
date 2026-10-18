@@ -1,0 +1,23 @@
+ULOG
+2
+IEEE14.SAV
+ARQV REST
+01
+DCTG
+(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )
+   1    1 PRIMEIRA CONTINGÊNCIA       
+(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und
+CIRD   1     2    1   
+FCAS
+(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )
+   2    1 SEGUNDA CONTINGÊNCIA
+(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und
+CIRD   4     5    1
+FCAS
+99999
+ULOG
+4
+RECTG.OUT
+EXCT NEWT QLIM MOCT MOCF MOCG FILE
+01
+FIM

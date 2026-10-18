@@ -104,6 +104,7 @@ if __name__ == "__main__":
     violou_fluxo_base = False
     violou_geracao_base = False
     minimal_step = False
+    modo_contingencia = False
 
 
     exit_list_final = []
@@ -168,7 +169,8 @@ if __name__ == "__main__":
                 "minimal_step": minimal_step,
                 "iteracao": iteracao,
                 "Pl": Pl_original,
-                "Ql": Ql_original
+                "Ql": Ql_original,
+                "modo_contingencia": modo_contingencia
             }
             for angulo in angulos
         }
@@ -236,7 +238,6 @@ if __name__ == "__main__":
             )
             for angulo in angulos_ativos
         ]
-
 
         while angulos_ativos:
             proximos_ativos = []

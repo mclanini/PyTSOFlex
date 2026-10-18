@@ -1,0 +1,68 @@
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   3
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ CONTINGENCIA    1  PRIORIDADE  1 PRIMEIRA CONTINGÊNCIA                         
+
+ CIRCUITO da Barra     1 BARRA-1       p/ Barra     2 BARRA-2      Circ  1 (DESLIGAR)
+
+ RELATORIO DE CONVERGENCIA
+
+ OPCOES ATIVADAS: NEWT RCVG RMON FILE INMN UNPG
+
+ X-----------X------X------X---------------X---------------X---------------X--X-----------------------------------------------------------X
+    ITERACAO          FREQ.  ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV                                                                
+  FC  P  Q  V  M.O.   (Hz)       MW    NUM.     Mvar   NUM.  TENSAO %  NUM. FM  BARRA(B), CIRCUITO(C) E CONVERSOR COM LIMITE VIOLADO       
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X--X-----------------------------------------------------------X
+
+      1  1    1.0000 60.000    152.54     2      0.00     5
+      2  2    1.0000 60.000     14.69     5     29.10     5
+      3  3    1.0000 60.000      0.54     5      0.86     5
+      4  4    1.0000 60.000      0.00     5      0.00     5
+ ................................................................
+
+
+
+
+ CONVERGENCIA FINAL
+
+ X-----------X------X------X---------------X---------------X---------------X
+    ITERACAO          FREQ. ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV  
+  FC  P  Q  V  M.O.   (Hz)      MW    NUM.     Mvar   NUM.  TENSAO %  NUM.  
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X
+
+   0                             0.00     0      0.00     0
+      4  4  0 1.0000 60.000      0.00     5      0.00     5     0.000     0
+CEPEL - CENTRO DE PESQUISAS DE ENERGIA ELETRICA - PROGRAMA DE ANALISE DE REDES - V13.00.01                                 PAG.   4
+
+ ****   Sistema teste de 14 maquinas - IEEE  ****                                
+
+ CONTINGENCIA    2  PRIORIDADE  1 SEGUNDA CONTINGÊNCIA                          
+
+ CIRCUITO da Barra     4 BARRA-4       p/ Barra     5 BARRA-5      Circ  1 (DESLIGAR)
+
+ RELATORIO DE CONVERGENCIA
+
+ OPCOES ATIVADAS: NEWT RCVG RMON FILE INMN UNPG
+
+ X-----------X------X------X---------------X---------------X---------------X--X-----------------------------------------------------------X
+    ITERACAO          FREQ.  ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV                                                                
+  FC  P  Q  V  M.O.   (Hz)       MW    NUM.     Mvar   NUM.  TENSAO %  NUM. FM  BARRA(B), CIRCUITO(C) E CONVERSOR COM LIMITE VIOLADO       
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X--X-----------------------------------------------------------X
+
+      1  1    1.0000 60.000     61.74     5     15.67     4
+      2  2    1.0000 60.000      0.52     4      1.36     5
+ ................................................................
+
+
+
+
+ CONVERGENCIA FINAL
+
+ X-----------X------X------X---------------X---------------X---------------X
+    ITERACAO          FREQ. ERRO MAX BARRA  ERRO MAX BARRA  ERRO MAX  CONV  
+  FC  P  Q  V  M.O.   (Hz)      MW    NUM.     Mvar   NUM.  TENSAO %  NUM.  
+ X--X--X--X--X------X------X---------X-----X---------X-----X---------X-----X
+
+   0                             0.00     0      0.00     0
+      2  2  0 1.0000 60.000      0.00     6      0.00     5     0.000     0

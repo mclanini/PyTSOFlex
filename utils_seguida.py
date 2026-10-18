@@ -52,7 +52,7 @@ def check_exist_bar(lines, target_bar):
         if linha.strip() == "99999":
             return False
         if linha[:5].strip() == str(target_bar):
-            if linha[7] == str(0):
+            if linha[7] == str(0) or linha[7] == ' ':
                 return True
     return False
 
@@ -190,14 +190,14 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
         "FILE L\n",
         "99999\n",
         "DBAR IMPR\n",
-        f"(Num)OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)M(1)(2)(3)(4)(5)(6)(7)(8)(9)(10\n",
+        "(Num)OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)M(1)(2)(3)(4)(5)(6)(7)(8)(9)(10\n",
         f"{new_line}\n",
         "99999\n",
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\RELAT.OUT\n",
-        "EXLF NEWT QLIM FILE\n",
-        "RELA RBAR RLIN FILE\n",
+        "EXLF NEWT QLIM\n",
+        "RELA RBAR RLIN\n",
         "TITU\n",
         f"Direcao_{angulo}_caso_{iteracao}\n",
         "ARQV GRAV\n",
@@ -205,11 +205,38 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\REMON.OUT\n",
-        "RELA RMON MOCT MOCF MOCG FILE\n",
+        "RELA RMON MOCT MOCF MOCG\n",
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\REMON_GER.OUT\n",
         "RELA RGEL\n",
+        "FIM"
+    ]
+    with open(caminho_caso, "w", encoding="utf-8") as f:
+        f.writelines(linhas)
+    return caminho_caso
+
+def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo):
+    caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}_contingencia.pwf")
+    # AINDA PRECISA DEFINIR A LÓGICA DA CONTINGÊNCIA
+    linhas = [
+        "ULOG\n",
+        "2\n",
+        f"{caminho_pasta}\TESTE_{angulo}.SAV\n",
+        "ARQV REST\n",
+        f"{iteracao:02d}\n",
+        "DCTG\n",
+        "(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )\n",
+        "   1    1 PRIMEIRA CONTINGÊNCIA       \n",
+        "(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und\n",
+        "CIRD   3     2    1\n"
+        "FCAS\n",
+        "99999\n",
+        "ULOG\n",
+        "4\n",
+        f"{caminho_pasta}\RECTG.OUT\n",
+        "EXCT NEWT MOCT MOCF MOCG FILE\n",
+        "01\n",
         "FIM"
     ]
     with open(caminho_caso, "w", encoding="utf-8") as f:
@@ -348,6 +375,98 @@ def check_geracao(pasta):
     violou_geracao = False
     return violou_geracao
 
+def read_contingencies(pasta):
+    caminho = os.path.join(pasta, "RECTG.OUT")
+    with open(caminho, "r", encoding="latin-1") as f:
+        texto = f.read()
+    texto = re.split(
+        r"^\s*SUMARIO DE MONITORACAO",
+        texto,
+        maxsplit=1,
+        flags=re.MULTILINE
+    )[0]
+
+    padrao = r"^\s*CONTINGENCIA\s+(\d+)\s+PRIORIDADE"
+    partes = re.split(padrao, texto, flags=re.MULTILINE)
+    contingencias = {}
+
+    for i in range(1, len(partes), 2):
+        numero = int(partes[i])
+        conteudo = partes[i + 1]
+        if numero not in contingencias:
+            # Extrai os dados do circuito
+            circuito = re.search(
+                r"CIRCUITO\s+da\s+Barra\s+(\d+)\s+(\S+)\s+"
+                r"p/\s+Barra\s+(\d+)\s+(\S+)",
+                conteudo,
+                flags=re.IGNORECASE
+            )
+            if circuito:
+                barra_de, nome_de, barra_para, nome_para = circuito.groups()
+                descricao = (
+                    f"Contingência {numero} - "
+                    f"Circuito da Barra {barra_de} ({nome_de}) "
+                    f"p/ Barra {barra_para} ({nome_para})"
+                )
+            else:
+                descricao = f"Contingência {numero}"
+            contingencias[numero] = {
+                "descricao": descricao,
+                "texto": ""
+            }
+        contingencias[numero]["texto"] += conteudo + "\n"
+    return contingencias
+
+def check_convergence(contingencias):
+    for numero, dados in contingencias.items():
+        for line in dados["texto"].splitlines():
+            linha = line.strip().upper()
+            if linha == "CONVERGENCIA FINAL":
+                break
+            if "DIVERGENTE" in linha or "NAO CONVERGENTE" in linha:
+                return False, numero, dados["descricao"]
+    return True, None, None
+
+def check_tensao(contingencias):
+    mensagem = "Não foram encontradas violações de tensao entre as barras monitoradas."
+    for numero, dados in contingencias.items():
+        blocos = re.split(
+            r"MONITORACAO DE TENSAO",
+            dados["texto"]
+        )
+        for bloco in blocos[1:]:
+            trecho = re.split(
+                r"MONITORACAO DE|RELATORIO DE",
+                bloco,
+                maxsplit=1
+            )[0]
+            if mensagem not in trecho and trecho.strip():
+                return True, numero, dados["descricao"]
+    return False, None, None
+
+def check_fluxo(contingencias):
+    mensagem = "Não foram encontradas violações de fluxo entre os circuitos monitorados"
+    for numero, dados in contingencias.items():
+        blocos = re.split(
+            r"MONITORACAO DE FLUXOS",
+            dados["texto"]
+        )
+        for bloco in blocos[1:]:
+            trecho = re.split(
+                r"MONITORACAO DE|RELATORIO DE",
+                bloco,
+                maxsplit=1
+            )[0]
+            if mensagem not in trecho and trecho.strip():
+                return True, numero, dados["descricao"]
+    return False, None, None
+
+def check_geracao(contingencias):
+    for numero, dados in contingencias.items():
+        if "MONITORACAO DE GERACAO" in dados["texto"]:
+            return True, numero, dados["descricao"]
+    return False, None, None
+
 def reduce_step(Pl, Ql, factor_P, factor_Q, reduce_step):
     # Retorno pro último valor de Pl e Ql antes da divergência e diminuo o passo
     Pl -= factor_P
@@ -397,9 +516,14 @@ def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor,
 def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo):
 #   Inicialização das variáveis de controle
     converged = True
+    modo_contingencia = False
+    contingencia_tensao = False
+    contingencia_fluxo = False
+    contingencia_geracao = False
     violou_tensao = status_angulo["violou_tensao"]
     violou_fluxo = status_angulo["violou_fluxo"]
     violou_geracao = status_angulo["violou_geracao"]
+    modo_contingencia = status_angulo["modo_contingencia"]
 #   Inicialização das variáveis de controle
     first_divergence = status_angulo["first_divergence"]
     first_tensao = status_angulo["first_tensao"]
@@ -437,7 +561,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     # A execução é verificada levando em consideração se existe ou não o arquivo RELAT.OUT na pasta do 
     # ângulo. Se não existir, significa que o ANAREDE não foi executado ou não gerou o relatório.
     executed = (
-        os.path.exists(os.path.join(caminho_pasta, "RELAT.OUT"))
+        os.path.exists(os.path.join(caminho_pasta, "RELAT.OUT")) \
+            or os.path.exists(os.path.join(caminho_pasta, "RECTG.OUT"))
     )
     if not executed:
         print(f"❌ Falha ao executar o ANAREDE ou gerar um dos relatórios. ANGULO: {angulo_graus}° | CASO: {iteracao}")
@@ -471,7 +596,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             minimal_step = False
                         plot_list.append({
                             "Ângulo": f"{math.degrees(angulo):.0f}°",
-                            "Característica": "Modificado",
+                            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
                             "Violação de Tensão": "Sim"
@@ -494,7 +619,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             print(f"✅ Primeira violação de tensão atingida, pois passo já está minimizado. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                             plot_list.append({
                                 "Ângulo": f"{math.degrees(angulo):.0f}°",
-                                "Característica": "Modificado",
+                                "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
                                 "Violação de Tensão": "Sim"
@@ -503,7 +628,9 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                         if observacao == '':
                             observacao = "Ponto da primeira violação de tensão"
                         else:
-                            observacao += " | Ponto da primeira violação de tensão" 
+                            observacao += " | Ponto da primeira violação de tensão"
+                else:
+                    contingencia_tensao = True
             # ---------------- ANÁLISE DE FLUXO ----------------
             # Se ainda não violou fluxo entro no IF e continuo verificando a cada iteração
             if not violou_fluxo:
@@ -527,7 +654,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             minimal_step = False
                         plot_list.append({
                             "Ângulo": f"{math.degrees(angulo):.0f}°",
-                            "Característica": "Modificado",
+                            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
                             "Violação de Fluxo": "Sim"
@@ -550,7 +677,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             print(f"✅ Ponto de violação de fluxo encontrado, pois passo já está minimizado. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                             plot_list.append({
                                 "Ângulo": f"{math.degrees(angulo):.0f}°",
-                                "Característica": "Modificado",
+                                "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
                                 "Violação de Fluxo": "Sim"
@@ -559,7 +686,9 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                         if observacao == '':
                             observacao = "Ponto da primeira violação de fluxo"
                         else:
-                            observacao += " | Ponto da primeira violação de fluxo" 
+                            observacao += " | Ponto da primeira violação de fluxo"
+                else:
+                    contingencia_fluxo = True
             # ---------------- ANÁLISE DE GERAÇÃO ----------------
             # Se ainda não violou geração entro no IF e continuo verificando a cada iteração
             if not violou_geracao:
@@ -582,7 +711,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             minimal_step = False
                         plot_list.append({
                             "Ângulo": f"{math.degrees(angulo):.0f}°",
-                            "Característica": "Modificado",
+                            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
                             "Violação de Geração": "Sim"
@@ -604,7 +733,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             print(f"✅ Ponto de violação de geração encontrado, pois passo já está minimizado. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                             plot_list.append({
                                 "Ângulo": f"{math.degrees(angulo):.0f}°",
-                                "Característica": "Modificado",
+                                "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
                                 "Violação de Geração": "Sim"
@@ -614,6 +743,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             observacao = "Ponto da primeira violação de geração"
                         else:
                             observacao += " | Ponto da primeira violação de geração"
+                else:
+                    contingencia_geracao = True
         # ---------------- ANÁLISE DE CONVERGÊNCIA ----------------
         # Se já divergiu eu não verifico violação
         else:
@@ -624,7 +755,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 exit_list.append({
                     "Ângulo": f"{math.degrees(angulo):.0f}°",
                     "Iteracao": iteracao,
-                    "Característica": "Modificado",
+                    "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                     "PL": f"{Pl:5.2f}"[:5],
                     "QL": f"{Ql:5.2f}"[:5],
                     "Convergiu": converged,
@@ -634,7 +765,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 })
                 plot_list.append({
                             "Ângulo": f"{math.degrees(angulo):.0f}°",
-                            "Característica": "Modificado",
+                            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
                             "Convergiu": "Não"
@@ -651,7 +782,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "minimal_step": minimal_step,
                     "iteracao": iteracao,
                     "Pl": Pl,
-                    "Ql": Ql
+                    "Ql": Ql,
+                    "modo_contingencia": modo_contingencia
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
             iteracao -= 1
@@ -676,7 +808,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 exit_list.append({
                     "Ângulo": f"{math.degrees(angulo):.0f}°",
                     "Iteracao": iteracao,
-                    "Característica": "Modificado",
+                    "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                     "PL": f"{Pl:5.2f}"[:5],
                     "QL": f"{Ql:5.2f}"[:5],
                     "Convergiu": converged,
@@ -686,7 +818,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 })
                 plot_list.append({
                             "Ângulo": f"{math.degrees(angulo):.0f}°",
-                            "Característica": "Modificado",
+                            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
                             "Convergiu": "Não"
@@ -703,57 +835,57 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "minimal_step": minimal_step,
                     "iteracao": iteracao,
                     "Pl": Pl,
-                    "Ql": Ql
+                    "Ql": Ql,
+                    "modo_contingencia": modo_contingencia
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
     iteracao += 1
-    exit_list.append({
-        "Ângulo": f"{math.degrees(angulo):.0f}°",
-        "Iteracao": iteracao,
-        "Característica": "Modificado",
-        "PL": f"{Pl:5.2f}"[:5] if Pl_old == 0 else f"{Pl_old:5.2f}"[:5],
-        "QL": f"{Ql:5.2f}"[:5] if Ql_old == 0 else f"{Ql_old:5.2f}"[:5],
-        "Convergiu": converged,
-        "Violação de Tensão": "Sim" if violou_tensao else "Não",
-        "Violação de Fluxo": "Sim" if violou_fluxo else "Não",
-        "Violação de Geração": "Sim" if violou_geracao else "Não",
-        "Observação": observacao
-    })
-    observacao = ''
-    Pl_old, Ql_old = 0, 0
+    # Se não teve nenhuma violação para os valores de Pl e Ql vigentes e a análise atual 
+    # não tem contingência, cria-se a contingência
+    if (contingencia_tensao and contingencia_fluxo and contingencia_geracao) and not status_angulo["modo_contingencia"]:
+        modo_contingencia = True
+        print(f"✅ Nenhuma violação encontrada, contingência será criada.")
+        caminho_caso = cria_caso_angulo_contingencia(
+                    iteracao=iteracao,
+                    caminho_pasta=caminho_pasta,
+                    angulo=angulo_graus
+                )
+    # Se houve alguma violação o processo segue sem necessidade de contingência, aumentando Pl e Ql
+    else:    
+        exit_list.append({
+            "Ângulo": f"{math.degrees(angulo):.0f}°",
+            "Iteracao": iteracao,
+            "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
+            "PL": f"{Pl:5.2f}"[:5] if Pl_old == 0 else f"{Pl_old:5.2f}"[:5],
+            "QL": f"{Ql:5.2f}"[:5] if Ql_old == 0 else f"{Ql_old:5.2f}"[:5],
+            "Convergiu": converged,
+            "Violação de Tensão": "Sim" if violou_tensao else "Não",
+            "Violação de Fluxo": "Sim" if violou_fluxo else "Não",
+            "Violação de Geração": "Sim" if violou_geracao else "Não",
+            "Observação": observacao
+        })
+        observacao = ''
+        Pl_old, Ql_old = 0, 0
 
-    Pl += factor_P
-    Ql += factor_Q
-    #Atualiza linha
-    #0         1         2         3         4         5         6         7          
-    #01234567890123456789012345678901234567890123456789012345678901234567890123456789
-    #(No )OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)
-    new_line = (
-        string_barra_alvo[:5] +
-        "M" +
-        " " * 52 +
-        f"{Pl:5.2f}"[:5] +
-        f"{Ql:5.2f}"[:5]
-    )
-    caminho_caso = cria_caso_angulo(
-        iteracao=iteracao,
-        caminho_pasta=caminho_pasta,
-        angulo=angulo_graus,
-        new_line=new_line
-    )
-    # CASO O ANAREDE TENHA DADO ERRO DEVIDO A NÃO CONVERGÊNCIA, ENCERRA o PROCESSO DO ANAREDE
-    # DE FORMA FORÇADA PARA EVITAR QUE O ANAREDE FIQUE ABERTO E IMPEDINDO A PRÓXIMA EXECUÇÃO
-    # Caminho completo do executável
-    caminho_exe = r"C:\CEPEL\Anarede\V130001\\ANAREDE.exe"
-    for proc in psutil.process_iter(['pid', 'name', 'exe']):
-        try:
-            # Verifica se o processo do ANAREDE ainda está em execução e se sim finaliza.
-            if proc.info['name'] == "ANAREDE.exe":
-                if 'exe' in proc.info and proc.info['exe'] and os.path.samefile(proc.info['exe'], caminho_exe):
-                    proc.kill()
-                    break
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, FileNotFoundError):
-            continue
+        Pl += factor_P
+        Ql += factor_Q
+        #Atualiza linha
+        #0         1         2         3         4         5         6         7          
+        #01234567890123456789012345678901234567890123456789012345678901234567890123456789
+        #(No )OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)
+        new_line = (
+            string_barra_alvo[:5] +
+            "M" +
+            " " * 52 +
+            f"{Pl:5.2f}"[:5] +
+            f"{Ql:5.2f}"[:5]
+        )
+        caminho_caso = cria_caso_angulo(
+            iteracao=iteracao,
+            caminho_pasta=caminho_pasta,
+            angulo=angulo_graus,
+            new_line=new_line
+        )
 
     status_atualizado = {
         "convergiu": True,
@@ -767,7 +899,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
         "minimal_step": minimal_step,
         "iteracao": iteracao,
         "Pl": Pl,
-        "Ql": Ql
+        "Ql": Ql,
+        "modo_contingencia": modo_contingencia
     }
     
     return plot_list, exit_list, caminho_caso, status_atualizado
