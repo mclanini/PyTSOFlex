@@ -2,7 +2,10 @@
 import os
 import re
 
+from OLD.utils_copy import check_convergence
 
+import pandas as pd
+from graph import *
 
 def read_contingencies(pasta):
     caminho = os.path.join(pasta, "RECTG.OUT")
@@ -46,7 +49,7 @@ def read_contingencies(pasta):
         contingencias[numero]["texto"] += conteudo + "\n"
     return contingencias
 
-def check_convergence(contingencias):
+def check_convergence_contingencies(contingencias):
     for numero, dados in contingencias.items():
         for line in dados["texto"].splitlines():
             linha = line.strip().upper()
@@ -56,7 +59,7 @@ def check_convergence(contingencias):
                 return False, numero, dados["descricao"]
     return True, None, None
 
-def check_tensao(contingencias):
+def check_tensao_contingencies(contingencias):
     mensagem = "Não foram encontradas violações de tensao entre as barras monitoradas."
     for numero, dados in contingencias.items():
         blocos = re.split(
@@ -73,7 +76,7 @@ def check_tensao(contingencias):
                 return True, numero, dados["descricao"]
     return False, None, None
 
-def check_fluxo(contingencias):
+def check_fluxo_contingencies(contingencias):
     mensagem = "Não foram encontradas violações de fluxo entre os circuitos monitorados"
     for numero, dados in contingencias.items():
         blocos = re.split(
@@ -101,11 +104,11 @@ pasta = r"C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex"
 
 contingencias = read_contingencies(pasta)
 
-divergiu, num_div, desc_div = check_convergence(contingencias)
+divergiu, num_div, desc_div = check_convergence_contingencies(contingencias)
+    
+violou_tensao, num_tensao, desc_tensao = check_tensao_contingencies(contingencias)
 
-violou_tensao, num_tensao, desc_tensao = check_tensao(contingencias)
-
-violou_fluxo, num_fluxo, desc_fluxo = check_fluxo(contingencias)
+violou_fluxo, num_fluxo, desc_fluxo = check_fluxo_contingencies(contingencias)
 
 violou_geracao, num_geracao, desc_geracao = check_geracao(contingencias)
 
@@ -113,3 +116,7 @@ print("Convergência:", divergiu, num_div, desc_div)
 print("Violou Tensão:", violou_tensao, num_tensao, desc_tensao)
 print("Violou Fluxo:", violou_fluxo, num_fluxo, desc_fluxo)
 print("Violou Geração:", violou_geracao, num_geracao, desc_geracao)
+
+# plot_df = pd.read_excel(r'C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex\plot_Tutorial 2 barras.xlsx')
+# plot = PlotFlexibilidade(plot_df)
+# plot.gerar_relatorio()

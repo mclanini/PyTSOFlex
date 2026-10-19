@@ -153,6 +153,7 @@ if __name__ == "__main__":
             "Violação de Fluxo": "Sim" if violou_fluxo_base else "Não",
             "Violação de Geração": "Sim" if violou_geracao_base else "Não",
             "Convergiu": "Sim" if convergencia_base else "Não",
+            "Descrição": "Caso Base",
         })
 
         # Caso base convergido, as execuções dos ângulos são iniciadas

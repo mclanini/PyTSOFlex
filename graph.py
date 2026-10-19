@@ -78,7 +78,7 @@ class PlotFlexibilidade:
 
         # Percorre cada direção estudada.
         for angulo, grupo in (
-            self.df[self.df["Característica"] == "Modificado"]
+            self.df[self.df["Característica"].str.contains("Modificado", na=False)]
             .groupby("angulo")
         ):
 
@@ -136,7 +136,7 @@ class PlotFlexibilidade:
         ]
 
         for angulo, grupo in (
-            self.df[self.df["Característica"] == "Modificado"]
+            self.df[self.df["Característica"].str.contains("Modificado", na=False)]
             .groupby("angulo")
         ):
             grupo = grupo.sort_index().reset_index(drop=True)
@@ -230,7 +230,11 @@ class PlotFlexibilidade:
             )
         )
         fig.update_layout(
-            title=evento,
+            title=dict(
+                text=evento,
+                y=0.98,
+                yanchor="top"
+            ),
             template="plotly_white",
             # width=850,
             height=520,
@@ -239,7 +243,7 @@ class PlotFlexibilidade:
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.02,
+                y=1.0,
                 xanchor="right",
                 x=1
             )
@@ -278,7 +282,7 @@ class PlotFlexibilidade:
                     fill="toself",
                     fillcolor="rgba(255, 0, 0, 0.18)",
                     line=dict(
-                        color="#ff0000",
+                        color="#00FF99",
                         width=2
                     ),
                     marker=dict(
@@ -299,10 +303,10 @@ class PlotFlexibilidade:
         pasta.mkdir(exist_ok=True)
 
         cores = {
-            "Violação de Tensão": "#d62728",
-            "Violação de Fluxo": "#1f77b4",
-            "Violação de Geração": "#2ca02c",
-            "Divergência": "#9467bd"
+            "Violação de Tensão": "#FFFF00",
+            "Violação de Fluxo": "#0000FF",
+            "Violação de Geração": "#E54CCC",
+            "Divergência": "#00FFFF"
         }
 
         html = f"""

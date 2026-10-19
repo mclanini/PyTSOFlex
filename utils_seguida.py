@@ -6,6 +6,7 @@ import os
 import time
 import math
 import tkinter as tk
+import re
 from tkinter import filedialog
 
 def selecionar_arquivo_base():
@@ -417,17 +418,17 @@ def read_contingencies(pasta):
         contingencias[numero]["texto"] += conteudo + "\n"
     return contingencias
 
-def check_convergence(contingencias):
+def check_convergence_contingencies(contingencias):
     for numero, dados in contingencias.items():
         for line in dados["texto"].splitlines():
             linha = line.strip().upper()
             if linha == "CONVERGENCIA FINAL":
                 break
             if "DIVERGENTE" in linha or "NAO CONVERGENTE" in linha:
-                return False, numero, dados["descricao"]
-    return True, None, None
+                return False, dados["descricao"]
+    return True, None
 
-def check_tensao(contingencias):
+def check_tensao_contingencies(contingencias):
     mensagem = "Não foram encontradas violações de tensao entre as barras monitoradas."
     for numero, dados in contingencias.items():
         blocos = re.split(
@@ -441,10 +442,10 @@ def check_tensao(contingencias):
                 maxsplit=1
             )[0]
             if mensagem not in trecho and trecho.strip():
-                return True, numero, dados["descricao"]
-    return False, None, None
+                return True, dados["descricao"]
+    return False, None
 
-def check_fluxo(contingencias):
+def check_fluxo_contingencies(contingencias):
     mensagem = "Não foram encontradas violações de fluxo entre os circuitos monitorados"
     for numero, dados in contingencias.items():
         blocos = re.split(
@@ -458,14 +459,14 @@ def check_fluxo(contingencias):
                 maxsplit=1
             )[0]
             if mensagem not in trecho and trecho.strip():
-                return True, numero, dados["descricao"]
-    return False, None, None
+                return True, dados["descricao"]
+    return False, None
 
-def check_geracao(contingencias):
+def check_geracao_contingencies(contingencias):
     for numero, dados in contingencias.items():
         if "MONITORACAO DE GERACAO" in dados["texto"]:
-            return True, numero, dados["descricao"]
-    return False, None, None
+            return True, dados["descricao"]
+    return False, None
 
 def reduce_step(Pl, Ql, factor_P, factor_Q, reduce_step):
     # Retorno pro último valor de Pl e Ql antes da divergência e diminuo o passo
@@ -516,7 +517,6 @@ def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor,
 def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo):
 #   Inicialização das variáveis de controle
     converged = True
-    modo_contingencia = False
     contingencia_tensao = False
     contingencia_fluxo = False
     contingencia_geracao = False
@@ -569,16 +569,26 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
         return [], [], None, None
     else:
         print(f"✅ ANAREDE executado e relatório gerado com sucesso. ANGULO: {angulo_graus}° | CASO: {iteracao}")
+        
         # Lê o relatório para verificar convergência
-        converged = check_convergence(pasta)
+        if not modo_contingencia:
+            converged = check_convergence(pasta)
+        else:
+            contingencias = read_contingencies(pasta)
+            converged, descricao_convergencia = check_convergence_contingencies(contingencias)
+        
         if converged:
+            if not modo_contingencia:
+                lines_monitoring = read_monitoring(pasta)
             print(f"🔄 Convergência atingida, violações serão analisadas. ANGULO: {angulo_graus}° | CASO: {iteracao}")
-            lines_monitoring = read_monitoring(pasta)
             # ---------------- ANÁLISE DE TENSÃO ----------------
             # Se ainda não violou tensão entro no IF e continuo verificando a cada iteração
             if not violou_tensao:
                 # Verifico se nessa condição houve violação de tensão
-                violou_tensao = check_tensao(lines_monitoring)
+                if not modo_contingencia:
+                    violou_tensao = check_tensao(lines_monitoring)
+                else:
+                    violou_tensao, descricao_tensao = check_tensao_contingencies(contingencias)
                 if violou_tensao:
                     print(f"✅ Tensão violou. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                     # Se eu violei tensão e já tive a primeira violação DE TENSÃO, 
@@ -599,7 +609,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
-                            "Violação de Tensão": "Sim"
+                            "Violação de Tensão": "Sim",
+                            "Descrição": f"Violação de Tensão - {descricao_tensao}" if modo_contingencia and descricao_tensao is not None else "Violação de Tensão sem contingência"
                         })
                     else:
                         # Se violou e ainda não tive nehuma primeira violação (qualquer uma), 
@@ -622,7 +633,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                                 "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
-                                "Violação de Tensão": "Sim"
+                                "Violação de Tensão": "Sim",
+                                "Descrição": f"Violação de Tensão - {descricao_tensao}" if modo_contingencia and descricao_tensao is not None else "Violação de Tensão sem contingência"
                             })
                         # Acrescento observação no ponto de primeira violação de tensão
                         if observacao == '':
@@ -635,7 +647,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
             # Se ainda não violou fluxo entro no IF e continuo verificando a cada iteração
             if not violou_fluxo:
                 # Verifico se nessa condição houve violação de fluxo
-                violou_fluxo = check_fluxo(lines_monitoring)
+                if not modo_contingencia:
+                    violou_fluxo = check_fluxo(lines_monitoring)
+                else:
+                    violou_fluxo, descricao_fluxo = check_fluxo_contingencies(contingencias)
                 if violou_fluxo:
                     print(f"✅ Fluxo violou. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                     print(lines_monitoring)
@@ -657,7 +672,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
-                            "Violação de Fluxo": "Sim"
+                            "Violação de Fluxo": "Sim",
+                            "Descrição": f"Violação de Fluxo - {descricao_fluxo}" if modo_contingencia and descricao_fluxo is not None else "Violação de Fluxo sem contingência"
                         })
                     else:
                         # Se violou e ainda não tive nehuma primeira violação (qualquer uma), 
@@ -680,7 +696,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                                 "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
-                                "Violação de Fluxo": "Sim"
+                                "Violação de Fluxo": "Sim",
+                                "Descrição": f"Violação de Fluxo - {descricao_fluxo}" if modo_contingencia and descricao_fluxo is not None else "Violação de Fluxo sem contingência"
                             })
                         # Acrescento observação no ponto de primeira violação de fluxo
                         if observacao == '':
@@ -693,7 +710,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
             # Se ainda não violou geração entro no IF e continuo verificando a cada iteração
             if not violou_geracao:
                 # Verifico se nessa condição houve violação de geração
-                violou_geracao = check_geracao(pasta)
+                if not modo_contingencia:
+                    violou_geracao = check_geracao(pasta)
+                else:
+                    violou_geracao, descricao_geracao = check_geracao_contingencies(contingencias)
                 if violou_geracao:
                     print(f"✅ Geração violou. ANGULO: {angulo_graus}° | CASO: {iteracao}")
                     # Se eu violei geração e já tive a primeira violação DE GERAÇÃO, 
@@ -714,7 +734,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
-                            "Violação de Geração": "Sim"
+                            "Violação de Geração": "Sim",
+                            "Descrição": f"Violação de Geração - {descricao_geracao}" if modo_contingencia and descricao_geracao is not None else "Violação de Geração sem contingência"
                         })
                     else:
                         # Se violou e ainda não tive nehuma primeira violação (qualquer uma), 
@@ -736,7 +757,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                                 "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                                 "PL": f"{Pl:5.2f}"[:5],
                                 "QL": f"{Ql:5.2f}"[:5],
-                                "Violação de Geração": "Sim"
+                                "Violação de Geração": "Sim",
+                                "Descrição": f"Violação de Geração - {descricao_geracao}" if modo_contingencia and descricao_geracao is not None else "Violação de Geração sem contingência"
                             })
                         # Acrescento observação no ponto de primeira violação de geração
                         if observacao == '':
@@ -768,7 +790,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
-                            "Convergiu": "Não"
+                            "Convergiu": "Não",
+                            "Descrição": f"Divergência - {descricao_convergencia}" if modo_contingencia and descricao_convergencia is not None else "Divergência sem contingência"
                 })
                 status_atualizado = {
                     "convergiu": False,
@@ -821,7 +844,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             "Característica": "Modificado sem contingência" if not status_angulo["modo_contingencia"] else "Modificado com contingência",
                             "PL": f"{Pl:5.2f}"[:5],
                             "QL": f"{Ql:5.2f}"[:5],
-                            "Convergiu": "Não"
+                            "Convergiu": "Não",
+                            "Descrição": f"Divergência - {descricao_convergencia}" if modo_contingencia and descricao_convergencia is not None else "Divergência sem contingência"
                 })
                 status_atualizado = {
                     "convergiu": False,
@@ -839,19 +863,21 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "modo_contingencia": modo_contingencia
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
-    iteracao += 1
+    # iteracao += 1
     # Se não teve nenhuma violação para os valores de Pl e Ql vigentes e a análise atual 
     # não tem contingência, cria-se a contingência
     if (contingencia_tensao and contingencia_fluxo and contingencia_geracao) and not status_angulo["modo_contingencia"]:
         modo_contingencia = True
         print(f"✅ Nenhuma violação encontrada, contingência será criada.")
         caminho_caso = cria_caso_angulo_contingencia(
-                    iteracao=iteracao,
+                    iteracao=iteracao+1,
                     caminho_pasta=caminho_pasta,
                     angulo=angulo_graus
                 )
     # Se houve alguma violação o processo segue sem necessidade de contingência, aumentando Pl e Ql
-    else:    
+    else:
+        iteracao += 1
+        modo_contingencia = False    
         exit_list.append({
             "Ângulo": f"{math.degrees(angulo):.0f}°",
             "Iteracao": iteracao,
