@@ -100,23 +100,32 @@ def check_geracao(contingencias):
     return False, None, None
 
 
-pasta = r"C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex"
+# pasta = r"C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex"
 
-contingencias = read_contingencies(pasta)
+# contingencias = read_contingencies(pasta)
 
-divergiu, num_div, desc_div = check_convergence_contingencies(contingencias)
+# divergiu, num_div, desc_div = check_convergence_contingencies(contingencias)
     
-violou_tensao, num_tensao, desc_tensao = check_tensao_contingencies(contingencias)
+# violou_tensao, num_tensao, desc_tensao = check_tensao_contingencies(contingencias)
 
-violou_fluxo, num_fluxo, desc_fluxo = check_fluxo_contingencies(contingencias)
+# violou_fluxo, num_fluxo, desc_fluxo = check_fluxo_contingencies(contingencias)
 
-violou_geracao, num_geracao, desc_geracao = check_geracao(contingencias)
+# violou_geracao, num_geracao, desc_geracao = check_geracao(contingencias)
 
-print("Convergência:", divergiu, num_div, desc_div)
-print("Violou Tensão:", violou_tensao, num_tensao, desc_tensao)
-print("Violou Fluxo:", violou_fluxo, num_fluxo, desc_fluxo)
-print("Violou Geração:", violou_geracao, num_geracao, desc_geracao)
+# print("Convergência:", divergiu, num_div, desc_div)
+# print("Violou Tensão:", violou_tensao, num_tensao, desc_tensao)
+# print("Violou Fluxo:", violou_fluxo, num_fluxo, desc_fluxo)
+# print("Violou Geração:", violou_geracao, num_geracao, desc_geracao)
 
-# plot_df = pd.read_excel(r'C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex\plot_Tutorial 2 barras.xlsx')
+plot_df = pd.read_excel(r'C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex\plot_Tutorial 2 barras - Copia.xlsx')
 # plot = PlotFlexibilidade(plot_df)
 # plot.gerar_relatorio()
+
+# plot_final = PlotFlexibilidade_final(plot_df)
+# plot_final.gerar_relatorio()
+
+# plot_final_cores__sem_mistura = PlotFlexibilidade(plot_df)
+# plot_final_cores__sem_mistura.gerar_relatorio()
+df_2 = pd.read_excel(r'C:\Users\Usuario\Documents\Projeto_Regiao_Flexibilidade\PyTSOFlex\resultado_Tutorial 2 barras.xlsx')
+plot_final_downloads = PlotFlexibilidade(plot_df, df_2)
+plot_final_downloads.gerar_relatorio()

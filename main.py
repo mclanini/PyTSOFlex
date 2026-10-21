@@ -55,6 +55,12 @@ if __name__ == "__main__":
         except ValueError:
             print("Valor inválido. Digite um número inteiro.")
 
+    # Solicita arquivo de contingências (.pwf) ao usuário
+    selecao_contingencia = False
+    caminho_caso_contingencia = selecionar_arquivo_contingencia()
+    if caminho_caso_contingencia is not None:
+        selecao_contingencia = True
+
     if linhas:
         target_line, Pl_original, Ql_original = get_line_pq(linhas, target_bar)
 
@@ -68,7 +74,7 @@ if __name__ == "__main__":
         math.pi/4 + i*(2*math.pi/aberturas)
         for i in range(aberturas)
     ]
-
+    
     # Cria pasta base do projeto
     pasta_base = r"C:\PyTSOFlex"
 
@@ -171,6 +177,7 @@ if __name__ == "__main__":
                 "iteracao": iteracao,
                 "Pl": Pl_original,
                 "Ql": Ql_original,
+                "selecao_contingencia": selecao_contingencia,
                 "modo_contingencia": modo_contingencia
             }
             for angulo in angulos
@@ -253,7 +260,8 @@ if __name__ == "__main__":
                     status_angulo,
                     factor,
                     reduce,
-                    string_barra_alvo
+                    string_barra_alvo,
+                    caminho_caso_contingencia
                 )
 
                 status_angulos[angulo] = status_atualizado

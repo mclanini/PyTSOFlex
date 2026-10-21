@@ -57,6 +57,37 @@ def check_exist_bar(lines, target_bar):
                 return True
     return False
 
+def selecionar_arquivo_contingencia():
+    while True:
+        try:
+            print("Deseja executar modo contingência:")
+            print("1 - Sim")
+            print("2 - Não")
+
+            opcao = int(input("Opção: "))
+
+            if opcao == 1:
+                root = tk.Tk()
+                root.withdraw()
+                caminho_caso_contingencia = filedialog.askopenfilename(
+                    title="Selecionar arquivo com contingências em formato PWF",
+                    filetypes=[
+                        ("Arquivos PWF", "*.pwf"),
+                        ("Todos os arquivos", "*.*")
+                    ]
+                )
+                root.destroy()
+                if caminho_caso_contingencia:
+                    caminho_caso_contingencia = os.path.normpath(caminho_caso_contingencia)
+                    return caminho_caso_contingencia
+                print("Nenhum arquivo selecionado.")
+            elif opcao == 2:
+                return None
+            else:
+                print("Opção inválida. Digite 1 ou 2.")
+        except ValueError:
+            print("Valor inválido. Digite 1 ou 2.")
+
 def get_line_pq(lines, target_bar):
     #0         1         2         3         4         5         6         7          
     #01234567890123456789012345678901234567890123456789012345678901234567890123456789
@@ -217,8 +248,11 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
         f.writelines(linhas)
     return caminho_caso
 
-def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo):
+def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo, caminho_caso_contingencia):
     caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}_contingencia.pwf")
+    linhas_arq_contingencia = []
+    with open(caminho_caso_contingencia) as f: 
+        linhas_arq_contingencia = f.readlines()
     # AINDA PRECISA DEFINIR A LÓGICA DA CONTINGÊNCIA
     linhas = [
         "ULOG\n",
@@ -226,13 +260,8 @@ def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo):
         f"{caminho_pasta}\TESTE_{angulo}.SAV\n",
         "ARQV REST\n",
         f"{iteracao:02d}\n",
-        "DCTG\n",
-        "(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )\n",
-        "   1    1 PRIMEIRA CONTINGÊNCIA       \n",
-        "(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und\n",
-        "CIRD   3     2    1\n"
-        "FCAS\n",
-        "99999\n",
+        *linhas_arq_contingencia,
+        "\n",
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\RECTG.OUT\n",
@@ -514,7 +543,7 @@ def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor,
     )
     return caminho_caso, Pl, Ql
 
-def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo):
+def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo, caminho_caso_contingencia=None):
 #   Inicialização das variáveis de controle
     converged = True
     contingencia_tensao = False
@@ -523,6 +552,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     violou_tensao = status_angulo["violou_tensao"]
     violou_fluxo = status_angulo["violou_fluxo"]
     violou_geracao = status_angulo["violou_geracao"]
+    selecao_contingencia = True if caminho_caso_contingencia is not None else False
     modo_contingencia = status_angulo["modo_contingencia"]
 #   Inicialização das variáveis de controle
     first_divergence = status_angulo["first_divergence"]
@@ -863,16 +893,22 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "modo_contingencia": modo_contingencia
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
-    # iteracao += 1
     # Se não teve nenhuma violação para os valores de Pl e Ql vigentes e a análise atual 
     # não tem contingência, cria-se a contingência
-    if (contingencia_tensao and contingencia_fluxo and contingencia_geracao) and not status_angulo["modo_contingencia"]:
+    if (
+        selecao_contingencia
+        and contingencia_tensao
+        and contingencia_fluxo
+        and contingencia_geracao
+        and not status_angulo["modo_contingencia"]
+    ):
         modo_contingencia = True
         print(f"✅ Nenhuma violação encontrada, contingência será criada.")
         caminho_caso = cria_caso_angulo_contingencia(
                     iteracao=iteracao+1,
                     caminho_pasta=caminho_pasta,
-                    angulo=angulo_graus
+                    angulo=angulo_graus,
+                    caminho_caso_contingencia=caminho_caso_contingencia,
                 )
     # Se houve alguma violação o processo segue sem necessidade de contingência, aumentando Pl e Ql
     else:
