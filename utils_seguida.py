@@ -165,6 +165,10 @@ def executa_anarede_sincrono(arquivo_mestre, pastas, intervalo_verificacao=1):
         int(os.path.basename(pasta)): None
         for pasta in pastas
     }
+    contingencia_savecase = {
+        int(os.path.basename(pasta)): False
+        for pasta in pastas
+    }
     try:
         processo = subprocess.Popen(
             comando,
@@ -173,7 +177,7 @@ def executa_anarede_sincrono(arquivo_mestre, pastas, intervalo_verificacao=1):
         while processo.poll() is None:
             for i, pasta in enumerate(pastas):
                 angulo = int(os.path.basename(pasta))
-                convergiu = check_convergence_execucao_anarede(pasta)
+                convergiu, comentario = check_convergence_execucao_anarede(pasta)
                 # Arquivo ainda não existe ou está vazio
                 if convergiu is None:
                     continue
@@ -186,6 +190,9 @@ def executa_anarede_sincrono(arquivo_mestre, pastas, intervalo_verificacao=1):
                     continue
                 # Caso divergiu
                 if convergiu is False:
+                    if comentario != "":
+                        contingencia_savecase[angulo] = True
+                        print(f"Não convergiu no ângulo {angulo}°: {comentario}")
                     respostas[angulo] = False
                     # Todos os ângulos seguintes recebem 'Não executado'
                     for pasta_restante in pastas[i + 1:]:
@@ -200,12 +207,12 @@ def executa_anarede_sincrono(arquivo_mestre, pastas, intervalo_verificacao=1):
                         shell=True,
                         capture_output=True
                     )
-                    return respostas
+                    return respostas, contingencia_savecase
             time.sleep(intervalo_verificacao)
-        return respostas
+        return respostas, contingencia_savecase
     except Exception as e:
         print(f"Erro ao executar ANAREDE: {e}")
-        return respostas
+        return respostas, contingencia_savecase
 
 def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
     caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}.pwf")
@@ -323,26 +330,65 @@ def create_report(lines, caminho_pasta):
                 break
     return lines
 
+# def check_convergence_execucao_anarede(pasta):
+#     relat = os.path.join(pasta, "RELAT.OUT")
+#     rectg = os.path.join(pasta, "RECTG.OUT")
+
+#     # Arquivos ainda não existem
+#     if not os.path.exists(relat) and not os.path.exists(rectg):
+#         return None
+
+#     if os.path.exists(relat) and os.path.getsize(relat) > 0:
+#         relatorio = relat
+#     elif os.path.exists(rectg) and os.path.getsize(rectg) > 0:
+#         relatorio = rectg
+#     else:
+#         return None
+
+#     # Arquivo existe, mas está vazio
+#     if os.path.getsize(relatorio) == 0:
+#         return None
+#     try:
+#         with open(relatorio, "r", encoding="utf-8", errors="ignore") as f:
+#             if relatorio == relat:
+#                 for line in f:
+#                     linha = line.strip().upper()
+#                     if "DIVERGENTE" in linha or "NAO CONVERGENTE" in linha:
+#                         return False
+#                     if line.strip() == "CONVERGENCIA FINAL":
+#                         return True
+#             else:
+#                 texto = f.read().upper()
+#                 if "DIVERGENTE" in texto or "NAO CONVERGENTE" in texto:
+#                     return False
+#     except (PermissionError, OSError):
+#         return None
+#     # Arquivo existe, tem conteúdo,
+#     # mas não possui "CONVERGENCIA FINAL", mas ainda pode possuir.
+#     return None
+
 def check_convergence_execucao_anarede(pasta):
     relatorio = os.path.join(pasta, "RELAT.OUT")
     # Arquivo ainda não existe
     if not os.path.exists(relatorio):
-        return None
+        return None, ""
     # Arquivo existe, mas está vazio
     if os.path.getsize(relatorio) == 0:
-        return None
+        return None, ""
     try:
         with open(relatorio, "r", encoding="utf-8", errors="ignore") as f:
             for line in f:
                 if line.strip() == "CONVERGENCIA FINAL":
                     return True
                 if "DIVERGENTE" in line.strip().upper() or "NAO CONVERGENTE" in line.strip().upper():
-                    return False
+                    return False, ""
+                if "ERRO SAVCAS-0160" in line.strip().upper() or " ERRO SAVCAS-0120" in line.strip().upper():
+                    return False, line
     except (PermissionError, OSError):
-        return None
+        return None, ""
     # Arquivo existe, tem conteúdo,
     # mas não possui "CONVERGENCIA FINAL", mas ainda pode possuir.
-    return None
+    return None, ""
 
 def check_convergence(pasta):
     # Caminho do arquivo de entrada (.pwf)
@@ -543,12 +589,13 @@ def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor,
     )
     return caminho_caso, Pl, Ql
 
-def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo, caminho_caso_contingencia=None):
+def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, string_barra_alvo, status_savecase, caminho_caso_contingencia=None):
 #   Inicialização das variáveis de controle
     converged = True
     contingencia_tensao = False
     contingencia_fluxo = False
     contingencia_geracao = False
+    contingencia_divergencia = True
     violou_tensao = status_angulo["violou_tensao"]
     violou_fluxo = status_angulo["violou_fluxo"]
     violou_geracao = status_angulo["violou_geracao"]
@@ -673,6 +720,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             observacao += " | Ponto da primeira violação de tensão"
                 else:
                     contingencia_tensao = True
+            else:
+                contingencia_tensao = True
             # ---------------- ANÁLISE DE FLUXO ----------------
             # Se ainda não violou fluxo entro no IF e continuo verificando a cada iteração
             if not violou_fluxo:
@@ -736,6 +785,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             observacao += " | Ponto da primeira violação de fluxo"
                 else:
                     contingencia_fluxo = True
+            else:
+                contingencia_fluxo = True
             # ---------------- ANÁLISE DE GERAÇÃO ----------------
             # Se ainda não violou geração entro no IF e continuo verificando a cada iteração
             if not violou_geracao:
@@ -797,9 +848,12 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                             observacao += " | Ponto da primeira violação de geração"
                 else:
                     contingencia_geracao = True
+            else:
+                contingencia_geracao = True
         # ---------------- ANÁLISE DE CONVERGÊNCIA ----------------
         # Se já divergiu eu não verifico violação
         else:
+            contingencia_divergencia = False
             # Se já teve a primeira divergência, encerra o processo.
             if first_divergence:
                 print(f"✅ Ponto de divergência encontrado, processo será finalizado. ANGULO: {angulo_graus}° | CASO: {iteracao}")
@@ -839,7 +893,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "modo_contingencia": modo_contingencia
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
-            iteracao -= 1
+            if not modo_contingencia:
+                iteracao -= 1
             # Acrescento observação no ponto de primeira violação de geração
             if observacao == '':
                 observacao = "Ponto da primeira divergência"
@@ -900,6 +955,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
         and contingencia_tensao
         and contingencia_fluxo
         and contingencia_geracao
+        and contingencia_divergencia
         and not status_angulo["modo_contingencia"]
     ):
         modo_contingencia = True
@@ -913,7 +969,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     # Se houve alguma violação o processo segue sem necessidade de contingência, aumentando Pl e Ql
     else:
         iteracao += 1
-        modo_contingencia = False    
+        modo_contingencia = False
         exit_list.append({
             "Ângulo": f"{math.degrees(angulo):.0f}°",
             "Iteracao": iteracao,

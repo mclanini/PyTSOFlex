@@ -1,0 +1,12 @@
+DCTG
+(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )
+   1    1 PRIMEIRA CONTINGENCIA       
+(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und
+CIRD 4072  72     1
+FCAS
+(Nc) O Pr (       IDENTIFICACAO DA CONTINGENCIA        )
+   2    1 SEGUNDA CONTINGENCIA
+(Tp) (El ) (Pa ) Nc (Ext) (DV1) (DV2) (DV3) (DV4) (DV5) (DV6) (DV7) Gr Und
+CIRD 4071  4072   1
+FCAS
+99999

@@ -74,7 +74,7 @@ if __name__ == "__main__":
         math.pi/4 + i*(2*math.pi/aberturas)
         for i in range(aberturas)
     ]
-    
+
     # Cria pasta base do projeto
     pasta_base = r"C:\PyTSOFlex"
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     caminho_executa_base = create_base_case(caminho_caso_base, pasta_base, angulos)
 
     # Processa arquivo base criado
-    check_processo_base = executa_anarede_sincrono(caminho_executa_base, pastas)
+    check_processo_base, contingencia_savecase = executa_anarede_sincrono(caminho_executa_base, pastas)
     print(f"Processamento do caso base {'concluído' if check_processo_base else 'não concluído'}.")
 
     violou_tensao_base = False
@@ -178,7 +178,8 @@ if __name__ == "__main__":
                 "Pl": Pl_original,
                 "Ql": Ql_original,
                 "selecao_contingencia": selecao_contingencia,
-                "modo_contingencia": modo_contingencia
+                "modo_contingencia": modo_contingencia,
+                "ciclo_savecase": 1,
             }
             for angulo in angulos
         }
@@ -224,7 +225,7 @@ if __name__ == "__main__":
         caminho_executa_mestre = os.path.join(pasta_base, f"caso_mestre.pwf")
         with open(caminho_executa_mestre, "w", encoding="utf-8") as f:
             f.writelines(linhas)
-        respostas = executa_anarede_sincrono(caminho_executa_mestre, pastas_ativas)
+        respostas, contingencia_savecase = executa_anarede_sincrono(caminho_executa_mestre, pastas_ativas)
         # Busco os angulos que não executaram na rodada
         angulos_nao_executaram = [
             angulo
@@ -235,7 +236,7 @@ if __name__ == "__main__":
         if len(angulos_nao_executaram) > 0:
             angulos_ativos = [
                 angulo
-                for angulo in proximos_ativos
+                for angulo in angulos_ativos
                 if int(round(math.degrees(angulo))) not in angulos_nao_executaram
             ]
     
@@ -253,6 +254,7 @@ if __name__ == "__main__":
 
             for angulo in angulos_ativos:
                 status_angulo = status_angulos[angulo]
+                status_savecase = True if contingencia_savecase[int(round(math.degrees(angulo)))] else False
                 plot_local, exit_local, caminho_caso, status_atualizado = processa_angulo(
                     pasta_base,
                     pastas_ativas,
@@ -261,6 +263,7 @@ if __name__ == "__main__":
                     factor,
                     reduce,
                     string_barra_alvo,
+                    status_savecase,
                     caminho_caso_contingencia
                 )
 
@@ -275,10 +278,12 @@ if __name__ == "__main__":
 
             # Remove RELAT.OUT já analisado.
             for pasta in pastas_ativas:
-                relatorio = os.path.join(pasta, "RELAT.OUT")
-        
-                if os.path.exists(relatorio):
-                    os.remove(relatorio)
+                relatorio1 = os.path.join(pasta, "RELAT.OUT")
+                relatorio2 = os.path.join(pasta, "RECTG.OUT")
+                if os.path.exists(relatorio1):
+                    os.remove(relatorio1)
+                if os.path.exists(relatorio2):
+                    os.remove(relatorio2)
 
             # Se na rodada tive angulos que não executaram, adiciono eles na lista de próximos ativos para 
             # a próxima rodada e nos arquivos para execução.
@@ -290,15 +295,28 @@ if __name__ == "__main__":
                         for angulo in angulos
                         if int(round(math.degrees(angulo))) == angulo_graus
                     )
-                    if angulo_original not in proximos_ativos:
+                    if angulo_original not in proximos_ativos \
+                    and status_angulos[angulo_original]["convergiu"] is True:
                         proximos_ativos.append(angulo_original)
-                proximos_ativos.sort()
-                # Adiciono os arquivos de execução dos ângulos que não executaram na rodada
-                for angulo in angulos_nao_executaram:
-                    pasta = os.path.join(pasta_base, str(angulo))
+                
+                    # Adiciono os arquivos de execução dos ângulos que não executaram na rodada
+                    pasta = os.path.join(pasta_base, str(angulo_graus))
                     caminho_pasta = os.path.abspath(pasta)
-                    caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}.pwf")
+                    caso = (
+                        f"caso_{angulo_graus}.pwf"
+                        if not status_angulos[angulo_original]["modo_contingencia"]
+                        else f"caso_{angulo_graus}_contingencia.pwf"
+                    )
+                    caminho_caso = os.path.join(caminho_pasta, caso)
                     arquivos_execucao.append(caminho_caso)
+
+                arquivos_execucao.sort(
+                    key=lambda caminho: int(
+                        os.path.basename(os.path.dirname(caminho))
+                    )
+                )
+                
+                proximos_ativos.sort()
 
                 pastas_ativas = [
                     os.path.join(
@@ -328,7 +346,7 @@ if __name__ == "__main__":
             caminho_executa_mestre = os.path.join(pasta_base, f"caso_mestre.pwf")
             with open(caminho_executa_mestre, "w", encoding="utf-8") as f:
                 f.writelines(linhas)
-            respostas = executa_anarede_sincrono(caminho_executa_mestre, pastas_ativas)
+            respostas, contingencia_savecase = executa_anarede_sincrono(caminho_executa_mestre, pastas_ativas)
             # Busco os angulos que não executaram na rodada
             angulos_nao_executaram = [
                 angulo
@@ -366,6 +384,6 @@ if __name__ == "__main__":
     arq_plot = f"plot_{nome_arquivo}.xlsx"
     plot_df.to_excel(arq_plot, index=False) 
 
-    plot = PlotFlexibilidade(plot_df)
+    plot = PlotFlexibilidade(plot_df, exit_df)
 
     plot.gerar_relatorio()
