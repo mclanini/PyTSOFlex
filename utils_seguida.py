@@ -104,7 +104,7 @@ def get_line_pq(lines, target_bar):
                 break
     return idx, Pl, Ql
 
-def create_base_case(caminho_caso_base, pasta_base, angulos):
+def create_base_case(caminho_caso_base, pasta_base, angulos, ciclo_savecase):
     caminho_executa_base = os.path.join(pasta_base, f"caso_base.pwf")
     linhas = [
         "ULOG\n",
@@ -125,7 +125,7 @@ def create_base_case(caminho_caso_base, pasta_base, angulos):
         linhas.extend([
             "ULOG\n",
             "2\n",
-            f"{caminho_pasta}\TESTE_{angulo_graus}.SAV\n",
+            f"{caminho_pasta}\\Caso_{angulo_graus}_Ciclo_{ciclo_savecase}.SAV\n",
             "ARQV INIC NOVO\n",
             "SIM\n",
             "TITU\n",
@@ -214,15 +214,39 @@ def executa_anarede_sincrono(arquivo_mestre, pastas, intervalo_verificacao=1):
         print(f"Erro ao executar ANAREDE: {e}")
         return respostas, contingencia_savecase
 
-def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
+def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line, ciclo_savecase, limite_savecase=''):
     caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}.pwf")
+    if limite_savecase != '':
+        print(f"⚠️ Limite de {limite_savecase} atingido, novo .SAV criado")
+        iteracao_salvar = 1
+        linha_sav_ler = [f"{caminho_pasta}\Caso_{angulo}_Ciclo_{ciclo_savecase-1}.SAV\n"]
+        linha_sav_salvar = [
+            "ULOG\n",
+            "2\n",
+            f"{caminho_pasta}\\Caso_{angulo}_Ciclo_{ciclo_savecase}.SAV\n",
+            "ARQV INIC NOVO\n",
+            "SIM\n",
+            f"Direcao_{angulo}_caso_{iteracao}_{ciclo_savecase}\n",
+            "Original\n",
+            "ARQV GRAV\n",
+            f"{iteracao_salvar:02d}\n",
+        ]
+    else:
+        iteracao_salvar = iteracao + 1
+        linha_sav_ler = [f"{caminho_pasta}\Caso_{angulo}_Ciclo_{ciclo_savecase}.SAV\n"]
+        linha_sav_salvar = [
+            "TITU\n",
+            f"Direcao_{angulo}_caso_{iteracao}_{ciclo_savecase}\n",
+            "ARQV GRAV\n",
+            f"{iteracao_salvar:02d}\n",
+        ]
     linhas = [
         "DOSC\n",
         f"DEL {caminho_pasta}\*.out\n",
         "99999\n",
         "ULOG\n",
         "2\n",
-        f"{caminho_pasta}\TESTE_{angulo}.SAV\n",
+        *linha_sav_ler,
         "ARQV REST\n",
         f"{iteracao:02d}\n",
         "DOPC\n",
@@ -237,10 +261,7 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
         f"{caminho_pasta}\RELAT.OUT\n",
         "EXLF NEWT QLIM\n",
         "RELA RBAR RLIN\n",
-        "TITU\n",
-        f"Direcao_{angulo}_caso_{iteracao}\n",
-        "ARQV GRAV\n",
-        f"{iteracao+1:02d}\n",
+        *linha_sav_salvar,
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\REMON.OUT\n",
@@ -255,16 +276,16 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line):
         f.writelines(linhas)
     return caminho_caso
 
-def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo, caminho_caso_contingencia):
+def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo, caminho_caso_contingencia, ciclo_savecase):
     caminho_caso = os.path.join(caminho_pasta, f"caso_{angulo}_contingencia.pwf")
     linhas_arq_contingencia = []
     with open(caminho_caso_contingencia) as f: 
         linhas_arq_contingencia = f.readlines()
-    # AINDA PRECISA DEFINIR A LÓGICA DA CONTINGÊNCIA
+
     linhas = [
         "ULOG\n",
         "2\n",
-        f"{caminho_pasta}\TESTE_{angulo}.SAV\n",
+        f"{caminho_pasta}\Caso_{angulo}_Ciclo_{ciclo_savecase}.SAV\n",
         "ARQV REST\n",
         f"{iteracao:02d}\n",
         *linhas_arq_contingencia,
@@ -618,6 +639,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     Pl_old, Ql_old = 0, 0
     caminho_caso = None
 
+    ciclo_savecase = status_angulo["ciclo_savecase"]
+    troca_ciclo_savecase = status_angulo["troca_ciclo_savecase"]
+    limite_savecase = ''
+
 #   INICIA O PROCESSO DE ANÁLISE PARA O ÂNGULO ESPECÍFICO
     angulo_graus = int(round(math.degrees(angulo)))
     # Pasta do ângulo
@@ -646,6 +671,58 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
         return [], [], None, None
     else:
         print(f"✅ ANAREDE executado e relatório gerado com sucesso. ANGULO: {angulo_graus}° | CASO: {iteracao}")
+
+        # A primeira análise é se houve problemas com o savecase, caso positivo, nada mais é verificado
+        # e a contingência para o savecase é criada, dependendo do ocorrido.
+        if status_savecase:
+            ciclo_savecase += 1
+            iteracao_old = iteracao
+            if iteracao == 99:
+                # Erro pois atingiu o limite
+                limite_savecase = 'Casos'
+            else:
+                limite_savecase = 'Armazenamento'
+            #0         1         2         3         4         5         6         7          
+            #01234567890123456789012345678901234567890123456789012345678901234567890123456789
+            #(No )OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)
+            new_line = (
+                string_barra_alvo[:5] +
+                "M" +
+                " " * 52 +
+                f"{Pl:5.2f}"[:5] +
+                f"{Ql:5.2f}"[:5]
+            )
+            caminho_caso = cria_caso_angulo(
+                iteracao=iteracao,
+                caminho_pasta=caminho_pasta,
+                angulo=angulo_graus,
+                new_line=new_line,
+                ciclo_savecase=ciclo_savecase,
+                limite_savecase=limite_savecase
+            )
+            iteracao = 0
+            modo_contingencia = False
+            troca_ciclo_savecase = True
+            status_atualizado = {
+                "convergiu": True,
+                "violou_tensao": violou_tensao,
+                "violou_fluxo": violou_fluxo,
+                "violou_geracao": violou_geracao,
+                "first_divergence": first_divergence,
+                "first_tensao": first_tensao,
+                "first_fluxo": first_fluxo,
+                "first_geracao": first_geracao,
+                "minimal_step": minimal_step,
+                "iteracao": iteracao,
+                "Pl": Pl,
+                "Ql": Ql,
+                "modo_contingencia": modo_contingencia,
+                "ciclo_savecase": ciclo_savecase,
+                "troca_ciclo_savecase": troca_ciclo_savecase,
+                "iteracao_contingencia": iteracao_old
+            }
+            
+            return plot_list, exit_list, caminho_caso, status_atualizado
         
         # Lê o relatório para verificar convergência
         if not modo_contingencia:
@@ -890,7 +967,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "iteracao": iteracao,
                     "Pl": Pl,
                     "Ql": Ql,
-                    "modo_contingencia": modo_contingencia
+                    "modo_contingencia": modo_contingencia,
+                    "ciclo_savecase": ciclo_savecase,
+                    "troca_ciclo_savecase": False,
+                    "iteracao_contingencia": iteracao
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
             if not modo_contingencia:
@@ -945,7 +1025,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                     "iteracao": iteracao,
                     "Pl": Pl,
                     "Ql": Ql,
-                    "modo_contingencia": modo_contingencia
+                    "modo_contingencia": modo_contingencia,
+                    "ciclo_savecase": ciclo_savecase,
+                    "troca_ciclo_savecase": False,
+                    "iteracao_contingencia": iteracao
                 }
                 return plot_list, exit_list, caminho_caso, status_atualizado
     # Se não teve nenhuma violação para os valores de Pl e Ql vigentes e a análise atual 
@@ -960,11 +1043,17 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     ):
         modo_contingencia = True
         print(f"✅ Nenhuma violação encontrada, contingência será criada.")
+        if troca_ciclo_savecase:
+            ciclo_savecase -= 1
+            iteracao = status_angulo["iteracao_contingencia"]
+        else:
+            iteracao = status_angulo["iteracao_contingencia"] + 1
         caminho_caso = cria_caso_angulo_contingencia(
-                    iteracao=iteracao+1,
+                    iteracao=iteracao,
                     caminho_pasta=caminho_pasta,
                     angulo=angulo_graus,
                     caminho_caso_contingencia=caminho_caso_contingencia,
+                    ciclo_savecase=ciclo_savecase
                 )
     # Se houve alguma violação o processo segue sem necessidade de contingência, aumentando Pl e Ql
     else:
@@ -1018,7 +1107,10 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
         "iteracao": iteracao,
         "Pl": Pl,
         "Ql": Ql,
-        "modo_contingencia": modo_contingencia
+        "modo_contingencia": modo_contingencia,
+        "ciclo_savecase": ciclo_savecase,
+        "troca_ciclo_savecase": False,
+        "iteracao_contingencia": iteracao
     }
     
     return plot_list, exit_list, caminho_caso, status_atualizado

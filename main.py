@@ -99,8 +99,10 @@ if __name__ == "__main__":
         # Variável a ser passada para a função processa_angulo, contendo a string da linha da barra alvo.
         string_barra_alvo = linhas[target_line]
 
+    ciclo_savecase = 1
+    
     # Cria arquivo para leitura do caso base e criação do Save Case de cada ângulo
-    caminho_executa_base = create_base_case(caminho_caso_base, pasta_base, angulos)
+    caminho_executa_base = create_base_case(caminho_caso_base, pasta_base, angulos, ciclo_savecase)
 
     # Processa arquivo base criado
     check_processo_base, contingencia_savecase = executa_anarede_sincrono(caminho_executa_base, pastas)
@@ -179,7 +181,8 @@ if __name__ == "__main__":
                 "Ql": Ql_original,
                 "selecao_contingencia": selecao_contingencia,
                 "modo_contingencia": modo_contingencia,
-                "ciclo_savecase": 1,
+                "ciclo_savecase": ciclo_savecase,
+                "troca_ciclo_savecase": False
             }
             for angulo in angulos
         }
