@@ -182,7 +182,8 @@ if __name__ == "__main__":
                 "selecao_contingencia": selecao_contingencia,
                 "modo_contingencia": modo_contingencia,
                 "ciclo_savecase": ciclo_savecase,
-                "troca_ciclo_savecase": False
+                "troca_ciclo_savecase": False,
+                "iteracao_contingencia": iteracao,
             }
             for angulo in angulos
         }
@@ -205,7 +206,8 @@ if __name__ == "__main__":
                 Pl_original,
                 Ql_original,
                 factor,
-                string_barra_alvo
+                string_barra_alvo,
+                ciclo_savecase
             )
             status_angulos[angulo]["Pl"] = Pl
             status_angulos[angulo]["Ql"] = Ql

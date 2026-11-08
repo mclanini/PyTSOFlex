@@ -226,8 +226,8 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line, ciclo_savecase, 
             f"{caminho_pasta}\\Caso_{angulo}_Ciclo_{ciclo_savecase}.SAV\n",
             "ARQV INIC NOVO\n",
             "SIM\n",
-            f"Direcao_{angulo}_caso_{iteracao}_{ciclo_savecase}\n",
-            "Original\n",
+            "TITU\n",
+            f"Direcao_{angulo}_caso_{iteracao}_Ciclo_{ciclo_savecase}\n",
             "ARQV GRAV\n",
             f"{iteracao_salvar:02d}\n",
         ]
@@ -236,7 +236,7 @@ def cria_caso_angulo(iteracao, caminho_pasta, angulo, new_line, ciclo_savecase, 
         linha_sav_ler = [f"{caminho_pasta}\Caso_{angulo}_Ciclo_{ciclo_savecase}.SAV\n"]
         linha_sav_salvar = [
             "TITU\n",
-            f"Direcao_{angulo}_caso_{iteracao}_{ciclo_savecase}\n",
+            f"Direcao_{angulo}_caso_{iteracao}_Ciclo_{ciclo_savecase}\n",
             "ARQV GRAV\n",
             f"{iteracao_salvar:02d}\n",
         ]
@@ -293,7 +293,7 @@ def cria_caso_angulo_contingencia(iteracao, caminho_pasta, angulo, caminho_caso_
         "ULOG\n",
         "4\n",
         f"{caminho_pasta}\RECTG.OUT\n",
-        "EXCT NEWT MOCT MOCF MOCG FILE\n",
+        "EXCT NEWT QLIM MOCT MOCF MOCG FILE\n",
         "01\n",
         "FIM"
     ]
@@ -397,14 +397,26 @@ def check_convergence_execucao_anarede(pasta):
     if os.path.getsize(relatorio) == 0:
         return None, ""
     try:
+        convergiu = False
         with open(relatorio, "r", encoding="utf-8", errors="ignore") as f:
             for line in f:
-                if line.strip() == "CONVERGENCIA FINAL":
-                    return True
-                if "DIVERGENTE" in line.strip().upper() or "NAO CONVERGENTE" in line.strip().upper():
+                linha = line.strip().upper()
+                 # Prioridade 1: Erros SAVCAS
+                if "ERRO SAVCAS-0160" in linha or "ERRO SAVCAS-0120" in linha:
+                    return False, line.strip()
+                # Prioridade 2: Divergência
+                if "DIVERGENTE" in linha or "NAO CONVERGENTE" in linha:
                     return False, ""
-                if "ERRO SAVCAS-0160" in line.strip().upper() or " ERRO SAVCAS-0120" in line.strip().upper():
-                    return False, line
+                # Prioridade 3: Convergência
+                if linha == "CONVERGENCIA FINAL":
+                    convergiu = True
+                # if line.strip() == "CONVERGENCIA FINAL":
+                #     return True, ""
+                # if "DIVERGENTE" in line.strip().upper() or "NAO CONVERGENTE" in line.strip().upper():
+                #     return False, ""
+        # Só retorna convergência após verificar todo o arquivo
+        if convergiu:
+            return True, ""
     except (PermissionError, OSError):
         return None, ""
     # Arquivo existe, tem conteúdo,
@@ -573,7 +585,7 @@ def reduce_step(Pl, Ql, factor_P, factor_Q, reduce_step):
     minimal_step = True
     return Pl, Ql, factor_P, factor_Q, minimal_step
 
-def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor, string_barra_alvo):
+def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor, string_barra_alvo, ciclo_savecase):
     Pl = Pl_original
     Ql = Ql_original
     caminho_caso = None
@@ -606,7 +618,8 @@ def cria_primeira_iteracao(pasta_base, angulo, Pl_original, Ql_original, factor,
         iteracao=1,
         caminho_pasta=caminho_pasta,
         angulo=angulo_graus,
-        new_line=new_line
+        new_line=new_line,
+        ciclo_savecase=ciclo_savecase
     )
     return caminho_caso, Pl, Ql
 
@@ -682,7 +695,7 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 limite_savecase = 'Casos'
             else:
                 limite_savecase = 'Armazenamento'
-            #0         1         2         3         4         5         6         7          
+            #0         1         2         3         4         5         6         7
             #01234567890123456789012345678901234567890123456789012345678901234567890123456789
             #(No )OETGb(   nome   )Gl( V)( A)( Pg)( Qg)( Qn)( Qm)(Bc  )( Pl)( Ql)( Sh)Are(Vf)
             new_line = (
@@ -721,9 +734,9 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
                 "troca_ciclo_savecase": troca_ciclo_savecase,
                 "iteracao_contingencia": iteracao_old
             }
-            
+
             return plot_list, exit_list, caminho_caso, status_atualizado
-        
+
         # Lê o relatório para verificar convergência
         if not modo_contingencia:
             converged = check_convergence(pasta)
@@ -1043,13 +1056,14 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
     ):
         modo_contingencia = True
         print(f"✅ Nenhuma violação encontrada, contingência será criada.")
-        if troca_ciclo_savecase:
-            ciclo_savecase -= 1
-            iteracao = status_angulo["iteracao_contingencia"]
-        else:
-            iteracao = status_angulo["iteracao_contingencia"] + 1
+        # if troca_ciclo_savecase:
+        #     ciclo_savecase_contingencia = ciclo_savecase - 1
+        #     iteracao_ctg = status_angulo["iteracao_contingencia"]
+        # else:
+        #     ciclo_savecase_contingencia = ciclo_savecase
+        #     iteracao_ctg = status_angulo["iteracao_contingencia"] + 1
         caminho_caso = cria_caso_angulo_contingencia(
-                    iteracao=iteracao,
+                    iteracao=iteracao + 1,
                     caminho_pasta=caminho_pasta,
                     angulo=angulo_graus,
                     caminho_caso_contingencia=caminho_caso_contingencia,
@@ -1091,7 +1105,8 @@ def processa_angulo(pasta_base, pastas, angulo, status_angulo, factor, reduce, s
             iteracao=iteracao,
             caminho_pasta=caminho_pasta,
             angulo=angulo_graus,
-            new_line=new_line
+            new_line=new_line,
+            ciclo_savecase=ciclo_savecase
         )
 
     status_atualizado = {

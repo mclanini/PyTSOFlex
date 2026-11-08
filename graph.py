@@ -234,7 +234,7 @@ class PlotFlexibilidade:
                 f"<b>Descrição:</b><br>{descricao}")
 
     def _adicionar_regiao(self, fig, borda, nome, cor, eventos_compartilhados=None,
-                         flexibilidade=False, mostrar_marcadores=True):
+                         flexibilidade=False, mostrar_marcadores=True, preencher=True):
         if borda.empty:
             return
         fechada = pd.concat([borda, borda.iloc[[0]]], ignore_index=True)
@@ -255,10 +255,10 @@ class PlotFlexibilidade:
         fig.add_trace(go.Scatter(
             x=fechada["PL"], y=fechada["QL"],
             mode="lines+markers" if mostrar_marcadores else "lines",
-            fill="toself",
+            fill="toself" if preencher else None,
             fillcolor="#00FF99" if flexibilidade else cor,
             line=dict(color="#00FF99" if flexibilidade else cor, width=3 if flexibilidade else 2),
-            marker=dict(color="black", size=8),
+            marker=dict(color="black", size=6),
             text=textos, hovertemplate="%{text}<extra></extra>",
             name=nome, hoveron="points" if mostrar_marcadores else "fills",
             hoverinfo="skip" if not mostrar_marcadores else None,
@@ -306,12 +306,26 @@ class PlotFlexibilidade:
 
         fig.update_xaxes(
             title="P<sub>load</sub>",
-            showgrid=True
+            # showgrid=not grafico_final,
+            # zeroline=not grafico_final
+            showgrid=True,
+            gridcolor="rgba(0, 0, 0, 0.35)" if grafico_final else "#E5ECF6",
+            gridwidth=0.5 if grafico_final else 1,
+            zeroline=True,
+            zerolinecolor="black" if grafico_final else "#E5ECF6",
+            zerolinewidth=0.5 if grafico_final else 2
         )
 
         fig.update_yaxes(
             title="Q<sub>load</sub>",
+            # showgrid=not grafico_final,
+            # zeroline=not grafico_final,
             showgrid=True,
+            gridcolor="rgba(0, 0, 0, 0.35)" if grafico_final else "#E5ECF6",
+            gridwidth=0.5 if grafico_final else 1,
+            zeroline=True,
+            zerolinecolor="black" if grafico_final else "#E5ECF6",
+            zerolinewidth=0.5 if grafico_final else 2,
             scaleanchor="x",
             scaleratio=1
         )
@@ -333,31 +347,28 @@ class PlotFlexibilidade:
         fig = go.Figure()
         registros = self._registros_compartilhados()
         pontos = {}
-        # Desenha primeiro as regiões maiores, para não encobrir as menores.
-        # O preenchimento é opaco: não há mistura de cores entre camadas.
-        regioes = []
+        # Primeiro desenha a região segura com preenchimento verde opaco.
+        # O fundo vermelho translúcido será configurado em plot_bgcolor.
+        flex = self.obter_borda_flexibilidade()
+        if not flex.empty:
+            self._adicionar_regiao(
+                fig, flex, "Região de Flexibilidade", "#00FF99",
+                flexibilidade=True, mostrar_marcadores=False
+            )
+            for _, linha in flex.iterrows():
+                pontos[self._chave_ponto(linha)] = linha
+
+        # Contornos individuais acima do preenchimento verde, sem áreas sólidas.
         for evento, cor in self.CORES.items():
             borda = self.obter_borda(evento)
             if borda.empty:
                 continue
-            x, y = borda["PL"].to_numpy(), borda["QL"].to_numpy()
-            area = abs(sum(x[i] * y[(i + 1) % len(x)] -
-                           x[(i + 1) % len(x)] * y[i]
-                           for i in range(len(x)))) / 2
-            regioes.append((area, evento, cor, borda))
-
-        for _, evento, cor, borda in sorted(regioes, key=lambda item: -item[0]):
-            self._adicionar_regiao(fig, borda, evento, cor,
-                                  mostrar_marcadores=False)
+            self._adicionar_regiao(
+                fig, borda, evento, cor,
+                mostrar_marcadores=False, preencher=False
+            )
             for _, linha in borda.iterrows():
                 pontos.setdefault(self._chave_ponto(linha), linha)
-
-        flex = self.obter_borda_flexibilidade()
-        if not flex.empty:
-            self._adicionar_regiao(fig, flex, "Região de Flexibilidade", "#00FF99",
-                                  flexibilidade=True, mostrar_marcadores=False)
-            for _, linha in flex.iterrows():
-                pontos[self._chave_ponto(linha)] = linha
 
         # Um único marcador interativo por coordenada. O ponto de operação
         # é desenhado depois, com prioridade, caso compartilhe coordenadas.
@@ -372,11 +383,14 @@ class PlotFlexibilidade:
             fig.add_trace(go.Scatter(
                 x=[linha["PL"] for linha in linhas],
                 y=[linha["QL"] for linha in linhas],
-                mode="markers", marker=dict(color="black", size=9),
+                mode="markers", marker=dict(color="black", size=6),
                 name="Pontos de Violação", showlegend=False,
                 text=textos, hovertemplate="%{text}<extra></extra>"))
         self._adicionar_operacao(fig)
-        return self._configurar_figura(fig, "Região de Flexibilidade")
+        fig = self._configurar_figura(fig, "Região de Flexibilidade")
+        # O vermelho cobre todo o retângulo dos eixos; a região verde o oculta.
+        fig.update_layout(plot_bgcolor="rgba(255, 0, 0, 0.85)")
+        return fig
 
     @staticmethod
     def _salvar_excel(df, destino):
